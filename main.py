@@ -8,7 +8,9 @@ WIDTH = 700
 
 player_velocity = 5
 ENEMY_VELOCITY = 1
+LASER_VELOCITY = 4
 ENEMY_WIDTH = 50
+LASER_WIDTH = 30
 
 PLAYER_SPACE_SHIP_UNSCALED_IMG = pygame.image.load(os.path.join("images", "playerspaceship.png"))
 PLAYER_SPACE_SHIP = pygame.transform.scale_by(PLAYER_SPACE_SHIP_UNSCALED_IMG, 0.4)
@@ -24,9 +26,16 @@ PINK_ENEMY = pygame.transform.scale(PINK_ENEMY_UNSCALED_IMG, (
 GREEN_ENEMY = pygame.transform.scale(GREEN_ENEMY_UNSCALED_IMG, (
     ENEMY_WIDTH, GREEN_ENEMY_UNSCALED_IMG.get_height() * (ENEMY_WIDTH / GREEN_ENEMY_UNSCALED_IMG.get_width())))
 
-BLUE_LASER = pygame.image.load(os.path.join("images", "bluelaser.png"))
-RED_LASER = pygame.image.load(os.path.join("images", "redlaser.png"))
-GREEN_LASER = pygame.image.load(os.path.join("images", "greenlaser.png"))
+BLUE_LASER_UNSCALED_IMG = pygame.image.load(os.path.join("images", "bluelaser.png"))
+RED_LASER_UNSCALED_IMG = pygame.image.load(os.path.join("images", "redlaser.png"))
+GREEN_LASER_UNSCALED_IMG = pygame.image.load(os.path.join("images", "greenlaser.png"))
+
+BLUE_LASER = pygame.transform.scale(BLUE_LASER_UNSCALED_IMG, (
+    LASER_WIDTH, BLUE_LASER_UNSCALED_IMG.get_height() * (LASER_WIDTH / BLUE_LASER_UNSCALED_IMG.get_width())))
+RED_LASER = pygame.transform.scale(RED_LASER_UNSCALED_IMG, (
+    LASER_WIDTH, RED_LASER_UNSCALED_IMG.get_height() * (LASER_WIDTH / RED_LASER_UNSCALED_IMG.get_width())))
+GREEN_LASER = pygame.transform.scale(GREEN_LASER_UNSCALED_IMG, (
+    LASER_WIDTH, GREEN_LASER_UNSCALED_IMG.get_height() * (LASER_WIDTH / GREEN_LASER_UNSCALED_IMG.get_width())))
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Pygame Space Invaders")
@@ -53,6 +62,9 @@ class LaserBullet:
 
     def draw(self, window):
         window.blit(self.laser_bullet_image, (self.position_x, self.position_y))
+
+    def check_if_outside_window(self):
+        return not (0 <= self.position_y <= HEIGHT)
 
 
 class Weapon:
@@ -99,6 +111,12 @@ class Ship:
         lasers = self.shot_laser_bullets.append(self.weapon.shoot_laser_bullet(self.positionX, self.positionY))
         if lasers is not None:
             self.shot_laser_bullets.append(lasers)
+
+    def move_shot_laser_bullets(self, velocity, target):
+        for laser_bullet in self.shot_laser_bullets:
+            laser_bullet.move(velocity)
+            if laser_bullet.check_if_outside_window():
+                self.shot_laser_bullets.remove(laser_bullet)
 
 
 class PlayerShip(Ship):
@@ -192,6 +210,9 @@ def main():
 
         for enemy in alive_enemies:
             enemy.move(ENEMY_VELOCITY)
+            enemy.move_shot_laser_bullets(LASER_VELOCITY, player_ship)
+
+        player_ship.move_shot_laser_bullets(-LASER_VELOCITY, alive_enemies)
 
 
 main()
