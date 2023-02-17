@@ -1,19 +1,25 @@
 import os
 import pygame
 from enum import Enum
+import random
 
 HEIGHT = 750
 WIDTH = 700
 
 player_velocity = 5
-enemy_velocity = 1
+ENEMY_VELOCITY = 1
+ENEMY_WIDTH = 45
 
 PLAYER_SPACE_SHIP_UNSCALED_IMG = pygame.image.load(os.path.join("images", "playerspaceship.png"))
 PLAYER_SPACE_SHIP = pygame.transform.scale_by(PLAYER_SPACE_SHIP_UNSCALED_IMG, 0.4)
 
-BLUE_ENEMY = pygame.image.load(os.path.join("images", "blueenemy.png"))
-PINK_ENEMY = pygame.image.load(os.path.join("images", "pinkenemy.png"))
-GREEN_ENEMY = pygame.image.load(os.path.join("images", "greenenemy.png"))
+BLUE_ENEMY_UNSCALED_IMG = pygame.image.load(os.path.join("images", "blueenemy.png"))
+PINK_ENEMY_UNSCALED_IMG = pygame.image.load(os.path.join("images", "pinkenemy.png"))
+GREEN_ENEMY_UNSCALED_IMG = pygame.image.load(os.path.join("images", "greenenemy.png"))
+
+BLUE_ENEMY = pygame.transform.scale(BLUE_ENEMY_UNSCALED_IMG, (ENEMY_WIDTH, BLUE_ENEMY_UNSCALED_IMG.get_height()*(ENEMY_WIDTH/BLUE_ENEMY_UNSCALED_IMG.get_width())))
+PINK_ENEMY = pygame.transform.scale(PINK_ENEMY_UNSCALED_IMG, (ENEMY_WIDTH, PINK_ENEMY_UNSCALED_IMG.get_height()*(ENEMY_WIDTH/PINK_ENEMY_UNSCALED_IMG.get_width())))
+GREEN_ENEMY = pygame.transform.scale(GREEN_ENEMY_UNSCALED_IMG, (ENEMY_WIDTH, GREEN_ENEMY_UNSCALED_IMG.get_height()*(ENEMY_WIDTH/GREEN_ENEMY_UNSCALED_IMG.get_width())))
 
 BLUE_LASER = pygame.image.load(os.path.join("images", "bluelaser.png"))
 RED_LASER = pygame.image.load(os.path.join("images", "redlaser.png"))
@@ -82,9 +88,24 @@ class PlayerShip(Ship):
                     self.positionY += direction.value[1]
 
 
+class Enemy(Ship):
+    ENEMY_IMAGES = [BLUE_ENEMY, PINK_ENEMY, GREEN_ENEMY]
+
+    def __init__(self, position_x, position_y, health=100):
+        super().__init__(position_x, position_y, health)
+        self.spaceship_image = random.choice(self.ENEMY_IMAGES)
+
+    def move(self, velocity):
+        self.positionY += velocity
+
+
 def main():
     def update_window():
         WINDOW.blit(BACKGROUND, (0, 0))
+
+        for enemy in alive_enemies:
+            enemy.draw(WINDOW)
+
         player_ship.draw(WINDOW)
         pygame.display.update()
 
@@ -92,6 +113,9 @@ def main():
     max_fps = 60
     clock = pygame.time.Clock()
     player_ship = PlayerShip(WIDTH // 2, 400)
+    alive_enemies = []
+    level = 0
+    enemies_for_each_wave = 0
 
     keys_actions = {
         pygame.K_a: lambda: player_ship.move(Direction.LEFT),
@@ -106,6 +130,13 @@ def main():
         clock.tick(max_fps)
         update_window()
 
+        if len(alive_enemies) == 0:
+            level += 1
+            enemies_for_each_wave += 5
+            for i in range(enemies_for_each_wave):
+                new_enemy = Enemy(random.randrange(25, WIDTH-BLUE_ENEMY.get_width()), random.randrange(-1500, -50))
+                alive_enemies.append(new_enemy)
+
         for event in pygame.event.get():
             if event.type is pygame.QUIT:
                 running_game = False
@@ -115,6 +146,9 @@ def main():
         for key, action in keys_actions.items():
             if pressed_keys[key]:
                 action()
+
+        for enemy in alive_enemies:
+            enemy.move(ENEMY_VELOCITY)
 
 
 main()
