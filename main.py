@@ -56,6 +56,7 @@ class LaserBullet:
         self.position_x = position_x
         self.position_y = position_y
         self.laser_bullet_image = laser_bullet_image
+        self.mask = pygame.mask.from_surface(self.laser_bullet_image)
 
     def move(self, velocity):
         self.position_y += velocity
@@ -65,6 +66,15 @@ class LaserBullet:
 
     def check_if_outside_window(self):
         return not (0 <= self.position_y <= HEIGHT)
+
+    def check_collision(self, obj):
+        return check_if_objects_collide(self, obj)
+
+
+def check_if_objects_collide(first_object, second_object):
+    x_difference = second_object.position_x - first_object.position_x
+    y_difference = second_object.position_y - first_object.position_y
+    return first_object.mask.overlap(second_object.mask, (x_difference, y_difference)) is not None
 
 
 class Weapon:
@@ -89,8 +99,8 @@ class DefaultPlayerWeapon(Weapon):
 
 class Ship:
     def __init__(self, position_x, position_y, health=100):
-        self.positionX = position_x
-        self.positionY = position_y
+        self.position_x = position_x
+        self.position_y = position_y
         self.health = health
         self.spaceship_image = None
         self.weapon = None
@@ -103,16 +113,16 @@ class Ship:
         return self.spaceship_image.get_height()
 
     def draw(self, window):
-        window.blit(self.spaceship_image, (self.positionX, self.positionY))
+        window.blit(self.spaceship_image, (self.position_x, self.position_y))
         for laser in self.shot_laser_bullets:
             laser.draw(window)
 
     def shoot(self):
-        lasers = self.shot_laser_bullets.append(self.weapon.shoot_laser_bullet(self.positionX, self.positionY))
+        lasers = self.shot_laser_bullets.append(self.weapon.shoot_laser_bullet(self.position_x, self.position_y))
         if lasers is not None:
             self.shot_laser_bullets.append(lasers)
 
-    def move_shot_laser_bullets(self, velocity, target):
+    def move_shot_laser_bullets(self, velocity):
         for laser_bullet in self.shot_laser_bullets:
             laser_bullet.move(velocity)
             if laser_bullet.check_if_outside_window():
@@ -124,28 +134,37 @@ class PlayerShip(Ship):
         super().__init__(position_x, position_y, health)
         self.spaceship_image = PLAYER_SPACE_SHIP
         self.weapon = DefaultPlayerWeapon()
+        self.mask = pygame.mask.from_surface(self.spaceship_image)
 
     def check_if_in_window(self, direction):
         if direction.name == "RIGHT":
-            return (self.positionX + self.get_width() + direction.value[1]) < WIDTH
+            return (self.position_x + self.get_width() + direction.value[1]) < WIDTH
         elif direction.name == "LEFT":
-            return (self.positionX + direction.value[1]) > 0
+            return (self.position_x + direction.value[1]) > 0
         elif direction.name == "DOWN":
-            return (self.positionY + self.get_height() + direction.value[1]) < HEIGHT
+            return (self.position_y + self.get_height() + direction.value[1]) < HEIGHT
         elif direction.name == "UP":
-            return (self.positionY + direction.value[1]) > 0
+            return (self.position_y + direction.value[1]) > 0
 
     def move(self, direction):
         if self.check_if_in_window(direction):
             match direction.name:
                 case "RIGHT":
-                    self.positionX += direction.value[1]
+                    self.position_x += direction.value[1]
                 case "LEFT":
-                    self.positionX += direction.value[1]
+                    self.position_x += direction.value[1]
                 case "DOWN":
-                    self.positionY += direction.value[1]
+                    self.position_y += direction.value[1]
                 case "UP":
-                    self.positionY += direction.value[1]
+                    self.position_y += direction.value[1]
+
+    def move_shot_laser_bullets(self, velocity, enemies):
+        super().move_shot_laser_bullets(velocity)
+        for shot_laser in self.shot_laser_bullets:
+            for enemy in enemies:
+                if shot_laser.check_collision(enemy):
+                    enemies.remove(enemy)
+                    self.shot_laser_bullets.remove(shot_laser)
 
 
 class Enemy(Ship):
@@ -155,17 +174,25 @@ class Enemy(Ship):
         super().__init__(position_x, position_y, health)
         self.spaceship_image = random.choice(self.ENEMY_IMAGES)
         self.weapon = DefaultEnemyWeapon()
+        self.mask = pygame.mask.from_surface(self.spaceship_image)
 
     def move(self, velocity):
-        self.positionY += velocity
+        self.position_y += velocity
+
+    def move_shot_laser_bullets(self, velocity, player):
+        super().move_shot_laser_bullets(velocity)
+        for shot_laser in self.shot_laser_bullets:
+            if shot_laser.check_collision(player):
+                player.health -= 10
+                self.shot_laser_bullets.remove(shot_laser)
 
 
 def main():
     def update_window():
         WINDOW.blit(BACKGROUND, (0, 0))
 
-        for enemy in alive_enemies:
-            enemy.draw(WINDOW)
+        for each_enemy in alive_enemies:
+            each_enemy.draw(WINDOW)
 
         player_ship.draw(WINDOW)
         pygame.display.update()
