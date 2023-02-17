@@ -48,6 +48,12 @@ class LaserBullet:
         self.position_y = position_y
         self.laser_bullet_image = laser_bullet_image
 
+    def move(self, velocity):
+        self.position_y += velocity
+
+    def draw(self, window):
+        window.blit(self.laser_bullet_image, (self.position_x, self.position_y))
+
 
 class Weapon:
     def __init__(self, laser_bullet_image):
@@ -75,6 +81,8 @@ class Ship:
         self.positionY = position_y
         self.health = health
         self.spaceship_image = None
+        self.weapon = None
+        self.shot_laser_bullets = list()
 
     def get_width(self):
         return self.spaceship_image.get_width()
@@ -84,16 +92,20 @@ class Ship:
 
     def draw(self, window):
         window.blit(self.spaceship_image, (self.positionX, self.positionY))
+        for laser in self.shot_laser_bullets:
+            laser.draw(window)
 
     def shoot(self):
-        None
-        # TODO: to be implemented
+        lasers = self.shot_laser_bullets.append(self.weapon.shoot_laser_bullet(self.positionX, self.positionY))
+        if lasers is not None:
+            self.shot_laser_bullets.append(lasers)
 
 
 class PlayerShip(Ship):
     def __init__(self, position_x, position_y, health=100):
         super().__init__(position_x, position_y, health)
         self.spaceship_image = PLAYER_SPACE_SHIP
+        self.weapon = DefaultPlayerWeapon()
 
     def check_if_in_window(self, direction):
         if direction.name == "RIGHT":
@@ -124,6 +136,7 @@ class Enemy(Ship):
     def __init__(self, position_x, position_y, health=100):
         super().__init__(position_x, position_y, health)
         self.spaceship_image = random.choice(self.ENEMY_IMAGES)
+        self.weapon = DefaultEnemyWeapon()
 
     def move(self, velocity):
         self.positionY += velocity
