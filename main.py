@@ -8,7 +8,7 @@ WIDTH = 700
 
 player_velocity = 5
 ENEMY_VELOCITY = 1
-ENEMY_WIDTH = 45
+ENEMY_WIDTH = 50
 
 PLAYER_SPACE_SHIP_UNSCALED_IMG = pygame.image.load(os.path.join("images", "playerspaceship.png"))
 PLAYER_SPACE_SHIP = pygame.transform.scale_by(PLAYER_SPACE_SHIP_UNSCALED_IMG, 0.4)
@@ -17,9 +17,12 @@ BLUE_ENEMY_UNSCALED_IMG = pygame.image.load(os.path.join("images", "blueenemy.pn
 PINK_ENEMY_UNSCALED_IMG = pygame.image.load(os.path.join("images", "pinkenemy.png"))
 GREEN_ENEMY_UNSCALED_IMG = pygame.image.load(os.path.join("images", "greenenemy.png"))
 
-BLUE_ENEMY = pygame.transform.scale(BLUE_ENEMY_UNSCALED_IMG, (ENEMY_WIDTH, BLUE_ENEMY_UNSCALED_IMG.get_height()*(ENEMY_WIDTH/BLUE_ENEMY_UNSCALED_IMG.get_width())))
-PINK_ENEMY = pygame.transform.scale(PINK_ENEMY_UNSCALED_IMG, (ENEMY_WIDTH, PINK_ENEMY_UNSCALED_IMG.get_height()*(ENEMY_WIDTH/PINK_ENEMY_UNSCALED_IMG.get_width())))
-GREEN_ENEMY = pygame.transform.scale(GREEN_ENEMY_UNSCALED_IMG, (ENEMY_WIDTH, GREEN_ENEMY_UNSCALED_IMG.get_height()*(ENEMY_WIDTH/GREEN_ENEMY_UNSCALED_IMG.get_width())))
+BLUE_ENEMY = pygame.transform.scale(BLUE_ENEMY_UNSCALED_IMG, (
+    ENEMY_WIDTH, BLUE_ENEMY_UNSCALED_IMG.get_height() * (ENEMY_WIDTH / BLUE_ENEMY_UNSCALED_IMG.get_width())))
+PINK_ENEMY = pygame.transform.scale(PINK_ENEMY_UNSCALED_IMG, (
+    ENEMY_WIDTH, PINK_ENEMY_UNSCALED_IMG.get_height() * (ENEMY_WIDTH / PINK_ENEMY_UNSCALED_IMG.get_width())))
+GREEN_ENEMY = pygame.transform.scale(GREEN_ENEMY_UNSCALED_IMG, (
+    ENEMY_WIDTH, GREEN_ENEMY_UNSCALED_IMG.get_height() * (ENEMY_WIDTH / GREEN_ENEMY_UNSCALED_IMG.get_width())))
 
 BLUE_LASER = pygame.image.load(os.path.join("images", "bluelaser.png"))
 RED_LASER = pygame.image.load(os.path.join("images", "redlaser.png"))
@@ -37,6 +40,33 @@ class Direction(Enum):
     RIGHT = ("RIGHT", player_velocity)
     UP = ("UP", -player_velocity)
     DOWN = ("DOWN", player_velocity)
+
+
+class LaserBullet:
+    def __init__(self, position_x, position_y, laser_bullet_image):
+        self.position_x = position_x
+        self.position_y = position_y
+        self.laser_bullet_image = laser_bullet_image
+
+
+class Weapon:
+    def __init__(self, laser_bullet_image):
+        self.laser_bullet_image = laser_bullet_image
+
+    def shoot_laser_bullet(self, position_x, position_y):
+        return LaserBullet(position_x, position_y, self.laser_bullet_image)
+
+
+class DefaultEnemyWeapon(Weapon):
+    ENEMY_LASER = [BLUE_LASER, GREEN_LASER]
+
+    def __init__(self):
+        super().__init__(random.choice(self.ENEMY_LASER))
+
+
+class DefaultPlayerWeapon(Weapon):
+    def __init__(self):
+        super().__init__(RED_LASER)
 
 
 class Ship:
@@ -134,7 +164,7 @@ def main():
             level += 1
             enemies_for_each_wave += 5
             for i in range(enemies_for_each_wave):
-                new_enemy = Enemy(random.randrange(25, WIDTH-BLUE_ENEMY.get_width()), random.randrange(-1500, -50))
+                new_enemy = Enemy(random.randrange(25, WIDTH - BLUE_ENEMY.get_width()), random.randrange(-1500, -50))
                 alive_enemies.append(new_enemy)
 
         for event in pygame.event.get():
