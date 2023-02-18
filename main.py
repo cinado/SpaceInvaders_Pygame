@@ -6,6 +6,8 @@ import random
 HEIGHT = 750
 WIDTH = 700
 
+pygame.font.init()
+
 player_velocity = 5
 ENEMY_VELOCITY = 1
 LASER_VELOCITY = 4
@@ -78,7 +80,7 @@ def check_if_objects_collide(first_object, second_object):
 
 
 class Weapon:
-    def __init__(self, laser_bullet_image, cooldown=800):
+    def __init__(self, laser_bullet_image, cooldown=700):
         self.laser_bullet_image = laser_bullet_image
         self.cooldown = cooldown
         self.last_shot = 0
@@ -142,6 +144,8 @@ class PlayerShip(Ship):
         self.spaceship_image = PLAYER_SPACE_SHIP
         self.weapon = DefaultPlayerWeapon()
         self.mask = pygame.mask.from_surface(self.spaceship_image)
+        self.healthbar = Healthbar(self.health, self.position_x, self.position_y, self.get_height(),
+                                   self.get_width())
 
     def check_if_in_window(self, direction):
         if direction.name == "RIGHT":
@@ -173,6 +177,39 @@ class PlayerShip(Ship):
                     enemies.remove(enemy)
                     self.shot_laser_bullets.remove(shot_laser)
 
+    def draw(self, window):
+        super().draw(window)
+        self.healthbar.update_position(self.position_x, self.position_y)
+        self.healthbar.draw(window)
+
+class Healthbar:
+    def __init__(self, current_health, position_x, position_y, space_ship_height, width, height=10, max_health = 100):
+        self.current_health = current_health
+        self.position_x = position_x
+        self.position_y = position_y + space_ship_height
+        self.max_health = max_health
+        self.width = width
+        self.height = height
+        self.space_ship_height = space_ship_height
+
+    def update_health(self, current_health):
+        self.current_health = current_health
+
+    def update_position(self, position_x, position_y):
+        self.position_x = position_x
+        self.position_y = position_y + self.space_ship_height
+
+    def draw(self, window):
+        current_health_ration = self.current_health / self.max_health
+        healthbar_width = int(self.width * current_health_ration)
+
+        bar_surface = pygame.Surface((self.width, self.height))
+        bar_surface.fill((255, 0, 0))
+        bar_surface.set_alpha(128)
+
+        pygame.draw.rect(bar_surface, (0, 255, 0), (0, 0, healthbar_width, self.height))
+        window.blit(bar_surface, (self.position_x, self.position_y))
+
 
 class Enemy(Ship):
     ENEMY_IMAGES = [BLUE_ENEMY, PINK_ENEMY, GREEN_ENEMY]
@@ -191,12 +228,19 @@ class Enemy(Ship):
         for shot_laser in self.shot_laser_bullets:
             if shot_laser.check_collision(player):
                 player.health -= 10
+                player.healthbar.update_health(player.health)
                 self.shot_laser_bullets.remove(shot_laser)
 
 
 def main():
     def update_window():
         WINDOW.blit(BACKGROUND, (0, 0))
+
+        level_text = information_bar_font.render(f"Level: {level}", True, (255, 255, 255))
+        lives_text = information_bar_font.render(f"Lives: {lives}", True, (255, 255, 255))
+
+        WINDOW.blit(lives_text, (10, 5))
+        WINDOW.blit(level_text, (WIDTH - level_text.get_width() - 10, 5))
 
         for each_enemy in alive_enemies:
             each_enemy.draw(WINDOW)
@@ -210,7 +254,9 @@ def main():
     player_ship = PlayerShip(WIDTH // 2, 400)
     alive_enemies = []
     level = 0
+    lives = 5
     enemies_for_each_wave = 0
+    information_bar_font = pygame.font.SysFont("source_sans_pro", 40)
 
     keys_actions = {
         pygame.K_a: lambda: player_ship.move(Direction.LEFT),
@@ -229,7 +275,8 @@ def main():
             level += 1
             enemies_for_each_wave += 5
             for i in range(enemies_for_each_wave):
-                new_enemy = Enemy(random.randrange(25, WIDTH - (int(1.25*BLUE_ENEMY.get_width()))), random.randrange(-1500, -50))
+                new_enemy = Enemy(random.randrange(25, WIDTH - (int(1.25*BLUE_ENEMY.get_width()))),
+                                  random.randrange(-1500, -50))
                 alive_enemies.append(new_enemy)
 
         for event in pygame.event.get():
@@ -250,9 +297,11 @@ def main():
 
             if check_if_objects_collide(player_ship, enemy):
                 player_ship.health -= 10
+                player_ship.healthbar.update_health(player_ship.health)
                 alive_enemies.remove(enemy)
             elif (enemy.position_y + enemy.get_height()) > HEIGHT:
                 alive_enemies.remove(enemy)
+                lives -= 1
 
         player_ship.move_shot_laser_bullets(-LASER_VELOCITY, alive_enemies)
 
