@@ -78,11 +78,18 @@ def check_if_objects_collide(first_object, second_object):
 
 
 class Weapon:
-    def __init__(self, laser_bullet_image):
+    def __init__(self, laser_bullet_image, cooldown=800):
         self.laser_bullet_image = laser_bullet_image
+        self.cooldown = cooldown
+        self.last_shot = 0
 
     def shoot_laser_bullet(self, position_x, position_y):
-        return LaserBullet(position_x, position_y, self.laser_bullet_image)
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_shot > self.cooldown:
+            self.last_shot = current_time
+            return LaserBullet(position_x, position_y, self.laser_bullet_image)
+        else:
+            return None
 
 
 class DefaultEnemyWeapon(Weapon):
@@ -118,7 +125,7 @@ class Ship:
             laser.draw(window)
 
     def shoot(self):
-        lasers = self.shot_laser_bullets.append(self.weapon.shoot_laser_bullet(self.position_x, self.position_y))
+        lasers = self.weapon.shoot_laser_bullet(self.position_x + (self.get_width()//2.9), self.position_y)
         if lasers is not None:
             self.shot_laser_bullets.append(lasers)
 
@@ -222,7 +229,7 @@ def main():
             level += 1
             enemies_for_each_wave += 5
             for i in range(enemies_for_each_wave):
-                new_enemy = Enemy(random.randrange(25, WIDTH - BLUE_ENEMY.get_width()), random.randrange(-1500, -50))
+                new_enemy = Enemy(random.randrange(25, WIDTH - (int(1.25*BLUE_ENEMY.get_width()))), random.randrange(-1500, -50))
                 alive_enemies.append(new_enemy)
 
         for event in pygame.event.get():
@@ -238,6 +245,14 @@ def main():
         for enemy in alive_enemies:
             enemy.move(ENEMY_VELOCITY)
             enemy.move_shot_laser_bullets(LASER_VELOCITY, player_ship)
+            if random.randrange(0, 2 * max_fps) == 7:
+                enemy.shoot()
+
+            if check_if_objects_collide(player_ship, enemy):
+                player_ship.health -= 10
+                alive_enemies.remove(enemy)
+            elif (enemy.position_y + enemy.get_height()) > HEIGHT:
+                alive_enemies.remove(enemy)
 
         player_ship.move_shot_laser_bullets(-LASER_VELOCITY, alive_enemies)
 
